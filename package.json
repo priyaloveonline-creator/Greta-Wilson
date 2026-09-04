@@ -1,0 +1,9 @@
+{
+  "name": "greta-ai-influencer-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Greta — AI influencer portfolio demo. Static frontend + two Vercel serverless functions (OpenRouter chat proxy, PayPal config). No framework, no database.",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
