@@ -6,7 +6,27 @@ const fs = require('fs');
 const path = require('path');
 
 const MODEL_TEXT = 'openai/gpt-oss-safeguard-20b';
+const MODEL_TEXT_FALLBACK = 'openai/gpt-oss-20b'; // same model family, used only if the primary is rate-limited/down
 const MODEL_VISION = 'openai/gpt-5.1'; // used only when an image is attached
+
+// OpenRouter already fails over between providers for a single model automatically,
+// but if EVERY provider for that model is briefly rate-limited (e.g. Groq's shared
+// capacity for gpt-oss-safeguard-20b), the request can still come back as a 429/502/503.
+// This retries a couple of times with a short backoff, which clears most of those blips.
+async function fetchWithRetry(url, options, maxAttempts) {
+  maxAttempts = maxAttempts || 3;
+  let res;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    res = await fetch(url, options);
+    if (res.ok) return res;
+    const retryable = res.status === 429 || res.status === 502 || res.status === 503;
+    if (!retryable || attempt === maxAttempts) return res;
+    try { await res.text(); } catch (e) { /* drain body before retrying */ }
+    const delay = 300 * Math.pow(2, attempt - 1) + Math.floor(Math.random() * 200);
+    await new Promise((r) => setTimeout(r, delay));
+  }
+  return res;
+}
 
 let cachedCatalog = null;
 function loadCatalog() {
@@ -145,9 +165,11 @@ module.exports = async (req, res) => {
       { role: 'user', content: userContent }
     ];
 
-    const model = image ? MODEL_VISION : MODEL_TEXT;
+    // models[] (plural) lets OpenRouter itself fall back to the next entry if the first
+    // is rate-limited, moderation-flagged, or down — on top of its own per-model provider failover.
+    const models = image ? [MODEL_VISION] : [MODEL_TEXT, MODEL_TEXT_FALLBACK];
 
-    const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const upstream = await fetchWithRetry('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -156,17 +178,20 @@ module.exports = async (req, res) => {
         'X-Title': `${loadCatalog().creator.name || 'Creator'} AI`
       },
       body: JSON.stringify({
-        model: model,
+        models: models,
         messages,
         temperature: 0.9,
         max_tokens: image ? 500 : 400
       })
-    });
+    }, 3);
 
     if (!upstream.ok) {
       const errText = await upstream.text();
       console.error('OpenRouter error', upstream.status, errText);
-      res.status(502).json({ error: 'The AI is having trouble responding right now. Try again in a moment.' });
+      const friendly = upstream.status === 429
+        ? "Greta's getting a lot of messages right now — give it a few seconds and try again."
+        : 'The AI is having trouble responding right now. Try again in a moment.';
+      res.status(502).json({ error: friendly });
       return;
     }
 
