@@ -132,7 +132,14 @@ button:focus-visible,.item:focus-visible,.tab:focus-visible{outline:2px solid va
 .tile{aspect-ratio:1/1;display:grid;place-items:center;position:relative;overflow:hidden}
 .tile img{width:100%;height:100%;object-fit:cover}
 .tile-mesh{background:radial-gradient(circle at 30% 25%,rgba(201,138,46,.22),transparent 55%),radial-gradient(circle at 75% 80%,rgba(46,139,87,.14),transparent 55%),var(--sand-deep)}
+.tile-clean{background:linear-gradient(180deg,#F7F1E7,#F0E8DA)}
 .tile-icon{width:44%;height:44%;color:var(--ink);opacity:.82}
+.store-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px}
+@media(min-width:640px){.store-grid{grid-template-columns:repeat(3,1fr)}}
+@media(min-width:900px){.store-grid{grid-template-columns:repeat(4,1fr)}}
+.aff-card{padding:10px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.aff-thumb{width:56px;height:56px;border-radius:12px;overflow:hidden;flex-shrink:0;background:linear-gradient(180deg,#F7F1E7,#F0E8DA)}
+.aff-link{width:32px;height:32px;border-radius:50%;background:var(--sand-deep);display:grid;place-items:center;flex-shrink:0;font-size:14px;color:var(--ink-70)}
 .badge{position:absolute;top:8px;left:8px;background:var(--ink);color:var(--sand);font-size:9px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.02em}
 .badge.gold{background:var(--gold)}
 .tabs{display:flex;gap:6px;padding:14px 16px 0;overflow-x:auto;scrollbar-width:none}
@@ -274,7 +281,7 @@ button:focus-visible,.item:focus-visible,.tab:focus-visible{outline:2px solid va
 <div style="padding:16px;display:none" id="tab-rev"><div id="reviewsList" style="display:grid;gap:10px"></div></div>
 </div>
 
-<div class="view" id="v-store"><div class="page-head"><h2>Creator Shop</h2><div class="page-sub">Digital products for creators — instant download after checkout.</div></div><div style="padding:16px;display:grid;gap:12px" id="storeGrid"></div></div>
+<div class="view" id="v-store"><div class="page-head"><h2>Creator Shop</h2><div class="page-sub">Skincare & beauty essentials — instant checkout, shipped or downloaded depending on the product.</div></div><div class="store-grid" id="storeGrid"></div></div>
 
 <div class="view" id="v-credits"><div class="page-head"><h2>Buy credits</h2><div class="page-sub">Credits unlock premium AI conversations. Pay as you go, nothing expires.</div></div><div class="packages" id="pkgGrid"></div>
 <div id="creditSum" style="display:none;padding:0 16px 16px"><div style="background:var(--white);border:1px solid var(--line);border-radius:13px;padding:12px"><div style="display:flex;justify-content:space-between;font-size:12px"><span id="sumC">0 Credits</span><span id="sumP">$0</span></div><div style="display:flex;justify-content:space-between;font-weight:800;margin-top:8px;border-top:1px solid var(--line);padding-top:8px"><span>Total</span><span id="sumT">$0</span></div></div><button class="cta" style="margin-top:12px" id="buyCredBtn">Continue to checkout</button></div></div>
@@ -287,9 +294,8 @@ button:focus-visible,.item:focus-visible,.tab:focus-visible{outline:2px solid va
 <div style="font-size:10px;color:var(--ink-50);text-align:center">Billed once for this demo — see deploy guide to enable auto-renewing subscriptions.</div>
 </div></div>
 
-<div class="view" id="v-affiliate"><div class="page-head"><h2>Affiliate</h2><div class="page-sub">Products recommended when relevant — disclosed, never fabricated.</div></div>
-<div class="affstat"><div class="stat" style="text-align:left;padding:13px"><div class="l" style="margin-bottom:4px">CATEGORIES</div><div style="font-size:12.5px;font-weight:700">Fashion • Beauty • Lifestyle</div></div><div class="stat" style="text-align:left;padding:13px"><div class="l" style="margin-bottom:4px">CREATOR GEAR</div><div style="font-size:12.5px;font-weight:700">Cameras • Lighting • Editing</div></div></div>
-<div style="padding:0 16px 16px"><div class="card" style="padding:14px"><strong>How it works</strong><div style="font-size:12px;color:var(--ink-70);margin-top:6px;line-height:1.6">Greta recommends products that genuinely fit her content and audience — not simply for commission. Ask her in chat and she'll share a link if one is configured, and always discloses when a link is an affiliate link.</div></div></div>
+<div class="view" id="v-affiliate"><div class="page-head"><h2>My Affiliate</h2><div class="page-sub">Products I recommend to my community — shop through my links.</div></div>
+<div id="affGrid" style="padding:16px;display:grid;gap:10px"></div>
 </div>
 
 <div class="view" id="v-contact"><div class="page-head"><h2>Contact <span class="cfg-name">Greta</span></h2><div class="page-sub">Business collaboration, UGC project, or general message.</div></div>
@@ -415,6 +421,51 @@ const ICONS={
 function iconTile(name,badge){
  return '<div class="tile tile-mesh">'+(badge?'<span class="badge '+(badge.cls||'')+'">'+badge.t+'</span>':'')+'<div class="tile-icon">'+(ICONS[name]||ICONS.doc)+'</div></div>';
 }
+/* ---- product illustrations (vector, generic — no real brand/photo assets available in this build) ---- */
+function lighten(hex,amt){
+ let c=hex.replace('#','');if(c.length===3) c=c.split('').map(x=>x+x).join('');
+ let num=parseInt(c,16);
+ let r=Math.min(255,(num>>16)+amt), g=Math.min(255,((num>>8)&0xff)+amt), b=Math.min(255,(num&0xff)+amt);
+ return '#'+[r,g,b].map(v=>Math.round(Math.max(0,v)).toString(16).padStart(2,'0')).join('');
+}
+function dropperArt(fill){
+ return '<svg viewBox="0 0 120 120"><ellipse cx="60" cy="104" rx="30" ry="6" fill="rgba(23,34,43,.08)"/><rect x="42" y="30" width="36" height="58" rx="10" fill="'+fill+'" opacity=".85"/><rect x="48" y="10" width="24" height="26" rx="6" fill="#3a2f28"/><rect x="55" y="2" width="10" height="12" rx="3" fill="#3a2f28"/><rect x="46" y="40" width="8" height="30" rx="4" fill="#fff" opacity=".35"/></svg>';
+}
+function jarArt(fill){
+ return '<svg viewBox="0 0 120 120"><ellipse cx="60" cy="104" rx="32" ry="6" fill="rgba(23,34,43,.08)"/><rect x="34" y="46" width="52" height="46" rx="14" fill="'+fill+'" opacity=".85"/><rect x="30" y="30" width="60" height="20" rx="10" fill="'+fill+'"/><ellipse cx="60" cy="30" rx="30" ry="8" fill="#fff" opacity=".5"/></svg>';
+}
+function tubeArt(fill){
+ return '<svg viewBox="0 0 120 120"><ellipse cx="60" cy="104" rx="26" ry="6" fill="rgba(23,34,43,.08)"/><path d="M45 30 L75 30 L80 50 Q85 95 60 96 Q35 95 40 50 Z" fill="'+fill+'" opacity=".85"/><rect x="48" y="14" width="24" height="18" rx="5" fill="#3a2f28"/></svg>';
+}
+function lipglossArt(fill){
+ let swipe=lighten(fill,45);
+ return '<svg viewBox="0 0 120 120"><ellipse cx="60" cy="104" rx="30" ry="6" fill="rgba(23,34,43,.08)"/><path d="M40 70 Q55 60 75 68 Q80 78 65 82 Q45 86 40 70Z" fill="'+swipe+'" opacity=".7"/><rect x="52" y="30" width="16" height="46" rx="8" fill="'+fill+'"/><rect x="50" y="18" width="20" height="16" rx="6" fill="#3a2f28"/></svg>';
+}
+function pumpArt(fill){
+ return '<svg viewBox="0 0 120 120"><ellipse cx="60" cy="104" rx="28" ry="6" fill="rgba(23,34,43,.08)"/><rect x="40" y="40" width="40" height="56" rx="10" fill="'+fill+'" opacity=".85"/><rect x="50" y="20" width="20" height="22" rx="4" fill="#e9e2d6"/><rect x="55" y="6" width="10" height="16" rx="3" fill="#3a2f28"/></svg>';
+}
+function perfumeArt(fill){
+ return '<svg viewBox="0 0 120 120"><ellipse cx="60" cy="104" rx="26" ry="6" fill="rgba(23,34,43,.08)"/><rect x="44" y="44" width="32" height="50" rx="8" fill="'+fill+'" opacity=".85"/><rect x="50" y="26" width="20" height="20" rx="4" fill="#3a2f28"/><circle cx="60" cy="18" r="7" fill="#3a2f28"/></svg>';
+}
+function kitArt(fill){
+ return '<svg viewBox="0 0 120 120"><ellipse cx="60" cy="104" rx="34" ry="6" fill="rgba(23,34,43,.08)"/><rect x="22" y="54" width="20" height="38" rx="6" fill="'+lighten(fill,15)+'"/><rect x="50" y="42" width="22" height="50" rx="6" fill="'+fill+'"/><rect x="80" y="58" width="18" height="34" rx="6" fill="'+lighten(fill,25)+'"/><rect x="26" y="46" width="12" height="10" rx="3" fill="#3a2f28"/><rect x="55" y="34" width="12" height="10" rx="3" fill="#3a2f28"/><rect x="83" y="50" width="12" height="10" rx="3" fill="#3a2f28"/></svg>';
+}
+function productArt(art,tint){
+ let t=tint||'#E3A857';
+ switch(art){
+  case 'dropper': return dropperArt(t);
+  case 'jar': return jarArt(t);
+  case 'tube': return tubeArt(t);
+  case 'lipgloss': return lipglossArt(t);
+  case 'pump': return pumpArt(t);
+  case 'perfume': return perfumeArt(t);
+  case 'kit': return kitArt(t);
+  default: return dropperArt(t);
+ }
+}
+function productTile(art,tint,badge){
+ return '<div class="tile tile-clean">'+(badge?'<span class="badge '+(badge.cls||'')+'">'+badge.t+'</span>':'')+'<div class="tile-icon">'+productArt(art,tint)+'</div></div>';
+}
 let CATALOG=null;
 let PAYPAL_CLIENT_ID='';
 let st={
@@ -451,6 +502,7 @@ function flip(el){let key=el.dataset.t;st.toggles[key]=!st.toggles[key];el.class
 
 /* ---------------- chat ---------------- */
 function now(){let d=new Date();let h=d.getHours();let m=d.getMinutes();let am=h>=12?'PM':'AM';h=h%12||12;if(m<10)m='0'+m;return h+':'+m+' '+am;}
+function stars(n){let full=Math.round(n);return '★★★★★☆☆☆☆☆'.slice(5-full,10-full);}
 function renderMsgs(){
  let c=document.getElementById('msgs');c.innerHTML='';
  st.msgs.forEach(m=>{
@@ -541,14 +593,14 @@ function renderStore(){
  CATALOG.store.forEach(p=>{
   let d=document.createElement('div');d.className='card';
   let badge=p.badge?{t:p.badge,cls:p.badge==='NEW'?'gold':''}:null;
-  d.innerHTML=iconTile(p.icon,badge)+'<div style="padding:12px"><div style="font-weight:700;font-size:13px">'+p.name+'</div><div style="font-size:11px;color:var(--ink-50);margin-top:4px">'+p.desc+'</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><strong>$'+p.price+'</strong><button style="background:var(--ink);color:var(--sand);padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700">Buy</button></div></div>';
+  d.innerHTML=productTile(p.art,p.tint,badge)+'<div style="padding:12px"><div style="font-weight:700;font-size:13px">'+p.name+'</div><div style="font-size:11px;color:var(--ink-50);margin-top:4px">'+p.desc+'</div><div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px"><strong>$'+p.price+'</strong><button style="background:var(--ink);color:var(--sand);padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700">Buy</button></div></div>';
   d.onclick=()=>openProd(p.id);g.appendChild(d);
  });
 }
 function openProd(id){
  let p=CATALOG.store.find(x=>x.id===id);if(!p)return;
  document.getElementById('pTitle').textContent=p.name;
- document.getElementById('pBody').innerHTML='<div class="tile tile-mesh" style="border-radius:12px;margin-bottom:12px"><div class="tile-icon" style="width:34%;height:34%">'+(ICONS[p.icon]||ICONS.doc)+'</div></div><div style="font-size:12px;line-height:1.6;color:var(--ink-70)">'+p.desc+'</div><div style="display:flex;justify-content:space-between;margin-top:12px"><strong style="font-size:18px">$'+p.price+'</strong><span style="font-size:10px;color:var(--ink-50)">Secure • Instant</span></div><div id="paypalProductBox" style="margin-top:12px"></div><div style="font-size:9px;color:var(--ink-50);text-align:center;margin-top:8px">Secure checkout via PayPal</div>';
+ document.getElementById('pBody').innerHTML='<div class="tile tile-clean" style="border-radius:12px;margin-bottom:12px"><div class="tile-icon" style="width:34%;height:34%">'+productArt(p.art,p.tint)+'</div></div><div style="font-size:12px;line-height:1.6;color:var(--ink-70)">'+p.desc+'</div><div style="display:flex;justify-content:space-between;margin-top:12px"><strong style="font-size:18px">$'+p.price+'</strong><span style="font-size:10px;color:var(--ink-50)">Secure • Instant</span></div><div id="paypalProductBox" style="margin-top:12px"></div><div style="font-size:9px;color:var(--ink-50);text-align:center;margin-top:8px">Secure checkout via PayPal</div>';
  document.getElementById('pModal').classList.add('open');
  renderBuyButton('paypalProductBox', p.price, p.name, ()=>{closeM('pModal');toast('Purchase complete! Check your email for the download.');});
 }
@@ -565,7 +617,22 @@ function renderReviews(){
  }
  g.innerHTML='';
  CATALOG.reviews.forEach(r=>{
-  g.innerHTML+='<div class="card" style="padding:14px"><div style="display:flex;gap:10px;align-items:center"><div style="width:34px;height:34px;border-radius:50%;background:'+(r.color||'#C98A2E')+';color:#fff;display:grid;place-items:center;font-weight:800;font-size:12px;flex-shrink:0">'+(r.initials||'')+'</div><div><div style="font-weight:700;font-size:12.5px">'+(r.title||'')+'</div></div></div><div style="font-size:12px;color:var(--ink-70);margin-top:8px;line-height:1.55">'+(r.body||'')+'</div><div style="font-size:10px;color:var(--ink-50);margin-top:8px">'+(r.name||'')+'</div></div>';
+  g.innerHTML+='<div class="card" style="padding:14px;display:flex;justify-content:space-between;gap:12px"><div style="flex:1;min-width:0"><div class="stars">'+stars(5)+'</div><div style="font-weight:700;font-size:13px;margin-top:4px;font-family:\'Fraunces\',serif">'+(r.name||'')+'</div><div style="font-size:12px;color:var(--ink-70);margin-top:8px;line-height:1.55">"'+(r.quote||'')+'"</div></div><div style="width:56px;height:56px;border-radius:50%;background:'+(r.badgeColor||'#EFE3D3')+';display:grid;place-items:center;text-align:center;font-size:8px;font-weight:800;letter-spacing:.02em;color:var(--ink-70);flex-shrink:0;padding:4px;text-transform:uppercase;font-family:\'Fraunces\',serif;line-height:1.2">'+(r.brand||'')+'</div></div>';
+ });
+}
+function renderAffiliate(){
+ let g=document.getElementById('affGrid');if(!g)return;
+ if(!CATALOG||!CATALOG.affiliate||!CATALOG.affiliate.length){
+  g.innerHTML='<div class="notice">No affiliate products configured yet — add them to data/catalog.json.</div>';
+  return;
+ }
+ g.innerHTML='';
+ CATALOG.affiliate.forEach(p=>{
+  let d=document.createElement('div');
+  d.className='card aff-card';
+  d.innerHTML='<div class="aff-thumb">'+productArt(p.art,p.tint)+'</div><div style="flex:1;min-width:0"><div style="font-weight:700;font-size:13px">'+p.name+'</div><div style="font-size:11px;color:var(--ink-50);margin-top:2px">'+p.desc+'</div><div style="font-weight:800;font-size:13px;margin-top:4px">$'+p.price+'</div></div><div class="aff-link">↗</div>';
+  d.onclick=()=>toast('Demo link — add your real affiliate URL in data/catalog.json');
+  g.appendChild(d);
  });
 }
 
@@ -679,6 +746,7 @@ function renderVip(){
  renderStore();
  renderPortfolio();
  renderReviews();
+ renderAffiliate();
  renderVip();
  updCred();
  initMsgs();
