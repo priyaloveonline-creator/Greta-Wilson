@@ -5,7 +5,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const MODEL = 'openai/gpt-oss-safeguard-20b';
+const MODEL_TEXT = 'openai/gpt-oss-safeguard-20b';
+const MODEL_VISION = 'openai/gpt-5.1'; // used only when an image is attached
 
 let cachedCatalog = null;
 function loadCatalog() {
@@ -97,14 +98,27 @@ module.exports = async (req, res) => {
     const body = req.body || {};
     const message = typeof body.message === 'string' ? body.message.trim() : '';
     const history = Array.isArray(body.history) ? body.history : [];
+    const image = typeof body.image === 'string' ? body.image : '';
 
-    if (!message) {
+    if (!message && !image) {
       res.status(400).json({ error: 'Message is required' });
       return;
     }
     if (message.length > 1500) {
       res.status(400).json({ error: 'Message is too long' });
       return;
+    }
+    if (image) {
+      const isDataUrl = /^data:image\/(png|jpeg|jpg|webp|gif);base64,/.test(image);
+      if (!isDataUrl) {
+        res.status(400).json({ error: 'Unsupported image format' });
+        return;
+      }
+      // ~6MB base64 ceiling — client already resizes images before sending, this just guards the endpoint
+      if (image.length > 8_000_000) {
+        res.status(400).json({ error: 'That image is too large' });
+        return;
+      }
     }
 
     const apiKey = process.env.OPENROUTER_API_KEY;
@@ -118,11 +132,20 @@ module.exports = async (req, res) => {
       .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
       .map((m) => ({ role: m.role, content: m.content.slice(0, 1500) }));
 
+    const userContent = image
+      ? [
+          { type: 'text', text: message || 'What do you see in this photo? React to it in character.' },
+          { type: 'image_url', image_url: { url: image } }
+        ]
+      : message;
+
     const messages = [
       { role: 'system', content: buildSystemPrompt() },
       ...safeHistory,
-      { role: 'user', content: message }
+      { role: 'user', content: userContent }
     ];
+
+    const model = image ? MODEL_VISION : MODEL_TEXT;
 
     const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
@@ -133,10 +156,10 @@ module.exports = async (req, res) => {
         'X-Title': `${loadCatalog().creator.name || 'Creator'} AI`
       },
       body: JSON.stringify({
-        model: MODEL,
+        model: model,
         messages,
         temperature: 0.9,
-        max_tokens: 400
+        max_tokens: image ? 500 : 400
       })
     });
 
