@@ -11,17 +11,105 @@
     "response": "< 1 min"
   },
   "store": [
-    { "id": 1, "name": "UGC Starter Kit", "price": 19, "icon": "doc", "badge": "BESTSELLER", "desc": "Everything a beginner needs to start creating UGC" },
-    { "id": 2, "name": "Viral Hook Pack", "price": 15, "icon": "sparkle", "badge": null, "desc": "100+ scroll-stopping hooks for short-form video" },
-    { "id": 3, "name": "UGC Script Pack", "price": 27, "icon": "chart", "badge": null, "desc": "Ready-to-customize scripts for every product category" },
-    { "id": 4, "name": "Content Planner", "price": 13, "icon": "grid", "badge": null, "desc": "Plan TikTok, Reels & Shorts without the overwhelm" },
-    { "id": 5, "name": "Creator Media Kit", "price": 22, "icon": "camera", "badge": "NEW", "desc": "A professional media kit template for pitching brands" },
-    { "id": 6, "name": "Brand Pitch Templates", "price": 12, "icon": "mail", "badge": null, "desc": "Customizable templates for reaching out to brands" },
-    { "id": 7, "name": "Creator Pricing Guide", "price": 9, "icon": "tag", "badge": null, "desc": "How to think about pricing your content & packages" },
-    { "id": 8, "name": "Content Idea Vault", "price": 17, "icon": "wave", "badge": null, "desc": "200+ content concepts, hooks and formats" },
-    { "id": 9, "name": "Caption Pack", "price": 11, "icon": "doc", "badge": null, "desc": "Ready-to-customize captions for every niche" },
-    { "id": 10, "name": "Photo Presets", "price": 24, "icon": "sun", "badge": null, "desc": "Lightroom presets for lifestyle & social content" },
-    { "id": 11, "name": "Brand Deal Checklist", "price": 8, "icon": "check", "badge": null, "desc": "What to check before saying yes to a collab" }
+    {
+      "id": 1,
+      "name": "UGC Starter Kit",
+      "price": 19,
+      "icon": "doc",
+      "badge": "BESTSELLER",
+      "desc": "Everything a beginner needs to start creating UGC",
+      "image": "assets/store/ugc_starter_kit.jpg"
+    },
+    {
+      "id": 2,
+      "name": "Viral Hook Pack",
+      "price": 15,
+      "icon": "sparkle",
+      "badge": null,
+      "desc": "100+ scroll-stopping hooks for short-form video",
+      "image": "assets/store/viral_hook_pack.jpg"
+    },
+    {
+      "id": 3,
+      "name": "UGC Script Pack",
+      "price": 27,
+      "icon": "chart",
+      "badge": null,
+      "desc": "Ready-to-customize scripts for every product category",
+      "image": "assets/store/ugc_script_pack.jpg"
+    },
+    {
+      "id": 4,
+      "name": "Content Planner",
+      "price": 13,
+      "icon": "grid",
+      "badge": null,
+      "desc": "Plan TikTok, Reels & Shorts without the overwhelm",
+      "image": "assets/store/content_planner.jpg"
+    },
+    {
+      "id": 5,
+      "name": "Creator Media Kit",
+      "price": 22,
+      "icon": "camera",
+      "badge": "NEW",
+      "desc": "A professional media kit template for pitching brands",
+      "image": "assets/store/creator_media_kit.jpg"
+    },
+    {
+      "id": 6,
+      "name": "Brand Pitch Templates",
+      "price": 12,
+      "icon": "mail",
+      "badge": null,
+      "desc": "Customizable templates for reaching out to brands",
+      "image": "assets/store/brand_pitch_templates.jpg"
+    },
+    {
+      "id": 7,
+      "name": "Creator Pricing Guide",
+      "price": 9,
+      "icon": "tag",
+      "badge": null,
+      "desc": "How to think about pricing your content & packages",
+      "image": "assets/store/creator_pricing_guide.jpg"
+    },
+    {
+      "id": 8,
+      "name": "Content Idea Vault",
+      "price": 17,
+      "icon": "wave",
+      "badge": null,
+      "desc": "200+ content concepts, hooks and formats",
+      "image": "assets/store/content_idea_vault.jpg"
+    },
+    {
+      "id": 9,
+      "name": "Caption Pack",
+      "price": 11,
+      "icon": "doc",
+      "badge": null,
+      "desc": "Ready-to-customize captions for every niche",
+      "image": "assets/store/caption_pack.jpg"
+    },
+    {
+      "id": 10,
+      "name": "Photo Presets",
+      "price": 24,
+      "icon": "sun",
+      "badge": null,
+      "desc": "Lightroom presets for lifestyle & social content",
+      "image": "assets/store/photo_presets.jpg"
+    },
+    {
+      "id": 11,
+      "name": "Brand Deal Checklist",
+      "price": 8,
+      "icon": "check",
+      "badge": null,
+      "desc": "What to check before saying yes to a collab",
+      "image": "assets/store/brand_deal_checklist.jpg"
+    }
   ],
   "vip": {
     "monthlyPrice": 9.99,
