@@ -367,6 +367,11 @@ button:focus-visible,.item:focus-visible,.tab:focus-visible{outline:2px solid va
 <span onclick="addEmoji('😊')">😊</span><span onclick="addEmoji('🔥')">🔥</span><span onclick="addEmoji('✨')">✨</span><span onclick="addEmoji('💡')">💡</span><span onclick="addEmoji('🧴')">🧴</span><span onclick="addEmoji('✈️')">✈️</span><span onclick="addEmoji('🤍')">🤍</span><span onclick="addEmoji('👋')">👋</span><span onclick="addEmoji('💰')">💰</span><span onclick="addEmoji('🎥')">🎥</span><span onclick="addEmoji('📸')">📸</span><span onclick="addEmoji('🚀')">🚀</span><span onclick="addEmoji('💕')">💕</span><span onclick="addEmoji('☕')">☕</span>
 </div>
 </div>
+<div id="attachPreview" style="display:none;align-items:center;gap:8px;background:var(--white);border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin-bottom:8px;font-size:12px">
+<img id="attachThumb" src="" alt="" style="width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0">
+<span id="attachName" style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-70)"></span>
+<button onclick="clearAttachment();toggleSend()" class="icon" style="width:24px;height:24px" aria-label="Remove attachment">✕</button>
+</div>
 <div class="composer"><div class="input-wrap"><button class="icon" id="eBtn" aria-label="Emoji">😊</button><input id="inp" placeholder="Message Greta..." autocomplete="off"><button class="icon" onclick="document.getElementById('fileIn').click()" aria-label="Attach">📎</button></div><button class="mic" id="micBtn" aria-label="Voice">🎤</button><button class="send" id="sendBtn" style="display:none" aria-label="Send">➤</button></div>
 </div>
 
@@ -468,6 +473,34 @@ function productTile(art,tint,badge){
 }
 let CATALOG=null;
 let PAYPAL_CLIENT_ID='';
+let pendingImage=null;
+function resizeImageFile(file,maxDim,quality){
+ maxDim=maxDim||1024;quality=quality||0.82;
+ return new Promise((resolve,reject)=>{
+  let reader=new FileReader();
+  reader.onload=e=>{
+   let img=new Image();
+   img.onload=()=>{
+    let w=img.width,h=img.height;
+    if(w>maxDim||h>maxDim){ if(w>h){h=Math.round(h*maxDim/w);w=maxDim;} else {w=Math.round(w*maxDim/h);h=maxDim;} }
+    let canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    resolve(canvas.toDataURL('image/jpeg',quality));
+   };
+   img.onerror=()=>reject(new Error('Could not decode image'));
+   img.src=e.target.result;
+  };
+  reader.onerror=()=>reject(new Error('Could not read file'));
+  reader.readAsDataURL(file);
+ });
+}
+function showAttachPreview(name){
+ document.getElementById('attachThumb').src=pendingImage;
+ document.getElementById('attachName').textContent=name;
+ document.getElementById('attachPreview').style.display='flex';
+}
+function hideAttachPreview(){document.getElementById('attachPreview').style.display='none';}
+function clearAttachment(){pendingImage=null;hideAttachPreview();}
 let st={
  credits: parseInt(localStorage.getItem('greta_credits')||'87'),
  msgs: JSON.parse(localStorage.getItem('greta_msgs')||'null')||null,
@@ -482,7 +515,14 @@ const pkgs=[
  {id:3,c:1000,p:24.99,pop:false},
  {id:4,c:5000,p:79.99,pop:false}
 ];
-function save(){localStorage.setItem('greta_credits',st.credits);localStorage.setItem('greta_msgs',JSON.stringify(st.msgs));localStorage.setItem('greta_view',st.view);localStorage.setItem('greta_toggles',JSON.stringify(st.toggles));}
+function save(){
+ localStorage.setItem('greta_credits',st.credits);
+ // strip attached images before persisting — they're big and would blow the localStorage quota fast
+ let slim=st.msgs.map(m=>({s:m.s,t:m.t,tm:m.tm}));
+ localStorage.setItem('greta_msgs',JSON.stringify(slim));
+ localStorage.setItem('greta_view',st.view);
+ localStorage.setItem('greta_toggles',JSON.stringify(st.toggles));
+}
 function toast(m){let t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 function updCred(){document.getElementById('ccount').textContent=st.credits;let d1=document.getElementById('ccountDesk');if(d1)d1.textContent=st.credits;let d2=document.getElementById('ccountDesk2');if(d2)d2.textContent=st.credits;}
 function escapeHtml(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
@@ -507,7 +547,7 @@ function renderMsgs(){
  let c=document.getElementById('msgs');c.innerHTML='';
  st.msgs.forEach(m=>{
   let row=document.createElement('div');row.className='msg-row '+(m.s==='err'?'greta err':m.s);
-  if(m.s==='user'){row.innerHTML='<div class="bubble">'+formatMsg(m.t)+'<div class="time">'+m.tm+' ✓✓</div></div>';}
+  if(m.s==='user'){let imgHtml=m.img?'<img src="'+m.img+'" alt="attached photo" style="max-width:100%;border-radius:12px;margin-bottom:6px;display:block">':'';row.innerHTML='<div class="bubble">'+imgHtml+formatMsg(m.t)+'<div class="time">'+m.tm+' ✓✓</div></div>';}
   else{row.innerHTML='<img src="'+AVATAR+'" class="msg-avatar" alt=""><div class="bubble">'+formatMsg(m.t)+'<div class="time">'+m.tm+'</div></div>';}
   c.appendChild(row);
  });
@@ -519,7 +559,7 @@ function initMsgs(){
  }
  renderMsgs();
 }
-function addMsg(t,s){st.msgs.push({s:s,t:t,tm:now()});save();renderMsgs();}
+function addMsg(t,s,img){st.msgs.push({s:s,t:t,tm:now(),img:img||null});save();renderMsgs();}
 function showTyping(){
  let c=document.getElementById('msgs');let d=document.createElement('div');d.id='typing';d.className='msg-row greta';
  d.innerHTML='<img src="'+AVATAR+'" class="msg-avatar" alt=""><div class="typing"><div class="dotty"></div><div class="dotty" style="animation-delay:.2s"></div><div class="dotty" style="animation-delay:.4s"></div></div>';
@@ -527,10 +567,12 @@ function showTyping(){
  document.getElementById('views').scrollTop=document.getElementById('views').scrollHeight;
 }
 function hideTyping(){let e=document.getElementById('typing');if(e)e.remove();}
-async function callAI(userText){
+async function callAI(userText,imageDataUrl){
  let history=st.msgs.slice(-8).filter(m=>m.s==='user'||m.s==='greta').map(m=>({role:m.s==='user'?'user':'assistant',content:m.t}));
  try{
-  let r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:userText,history:history})});
+  let body={message:userText,history:history};
+  if(imageDataUrl) body.image=imageDataUrl;
+  let r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   let d=await r.json();
   if(!r.ok) throw new Error(d.error||'Request failed');
   return {ok:true,text:d.reply};
@@ -540,20 +582,22 @@ async function callAI(userText){
  }
 }
 async function sendMsg(t){
- if(!t.trim()) return;
+ let img=pendingImage;
+ if(!t.trim() && !img) return;
  if(st.credits<=0){toast('Out of credits! Top up to keep chatting');showView('credits');return;}
- addMsg(t,'user');
+ addMsg(t || 'Sent a photo','user',img);
+ pendingImage=null;hideAttachPreview();
  st.credits=Math.max(0,st.credits-1);updCred();save();
  document.getElementById('sendBtn').disabled=true;
  showTyping();
- let res=await callAI(t);
+ let res=await callAI(t,img);
  hideTyping();
  addMsg(res.text, res.ok?'greta':'err');
  document.getElementById('sendBtn').disabled=false;
 }
 function qs(txt){sendMsg(txt);}
 function addEmoji(e){let i=document.getElementById('inp');i.value+=e;i.focus();toggleSend();}
-function toggleSend(){let inp=document.getElementById('inp');let mic=document.getElementById('micBtn');let send=document.getElementById('sendBtn');if(inp.value.trim().length>0){mic.style.display='none';send.style.display='grid';}else{mic.style.display='grid';send.style.display='none';}}
+function toggleSend(){let inp=document.getElementById('inp');let mic=document.getElementById('micBtn');let send=document.getElementById('sendBtn');if(inp.value.trim().length>0||pendingImage){mic.style.display='none';send.style.display='grid';}else{mic.style.display='grid';send.style.display='none';}}
 function clearChat(){if(confirm('Clear chat?')){st.msgs=[];save();initMsgs();toast('Chat cleared');}}
 function sendContact(){
  let n=document.getElementById('cname').value,e=document.getElementById('cemail').value,m=document.getElementById('cmsg').value,subj=document.getElementById('csubj').value;
@@ -763,7 +807,18 @@ function renderVip(){
  initPaypal();
  document.querySelectorAll('.mobileTop .avatar-wrap, .mobileTop .creator-name, .mobileTop .status').forEach(el=>el.classList.add('intro-in'));
 })();
-document.getElementById('fileIn').addEventListener('change',e=>{let f=e.target.files[0];if(f) toast('Attachment: '+f.name+' (not uploaded in this demo)');});
+document.getElementById('fileIn').addEventListener('change',async e=>{
+ let f=e.target.files[0];
+ if(!f) return;
+ if(!f.type.startsWith('image/')){toast('Only images are supported right now');e.target.value='';return;}
+ if(f.size>10*1024*1024){toast('That image is too large — try one under 10MB');e.target.value='';return;}
+ try{
+  pendingImage=await resizeImageFile(f);
+  showAttachPreview(f.name);
+  toggleSend();
+ }catch(err){console.error(err);toast('Could not read that image');}
+ e.target.value='';
+});
 </script>
 </body>
 </html>
